@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="UTF-8">
+    <title>原始表质检工具</title>
+
+    <link rel="shortcut icon" href="favicon.ico"/>
+    <link href="../css/bootstrap.min.css?v=3.3.6" rel="stylesheet"/>
+    <link href="../css/plugins/bootstrap-table/bootstrap-table.min.css"
+          rel="stylesheet"/>
+
+    <link href="../css/style.css?v=4.1.0" rel="stylesheet"/>
+    <!-- Sweet Alert -->
+    <link href="../css/plugins/sweetalert/sweetalert.css" rel="stylesheet"/>
+
+    <style type="text/css">
+
+        pre {outline: 1px solid #ccc; padding: 5px; margin: 5px; }
+        .string { color: green; }
+        .number { color: darkorange; }
+        .boolean { color: blue; }
+        .null { color: magenta; }
+        .key { color: red; }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+    </style>
+
+</head>
+
+<body>
+</br>
+<form class="form">
+    <div class="row">
+        <div class="col">
+            <div class="input-group">
+<!--                <span class="input-group-addon">角色：</span>-->
+                    <span class="input-group-addon"> 索引名称：</span>-->
+                <div class="form-group">
+                    <input type="text" id="indexName" name="indexName" class="form-control">
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="input-group">
+                <span class="input-group-addon"> 查询条件：</span>-->
+                <div class="form-group">
+                    <input type="text" id="queryCondition"  name="queryCondition" class="form-control">
+                </div>
+            </div>
+        </div>
+        <div class="col"></div>
+        <div class="col">
+            <button type="button" class="btn btn-success" onclick="refresh()">重置</button>
+            <button type="button" class="btn btn-primary" onclick="search()">搜索</button>
+        </div>
+    </div>
+</form>
+</br>
+
+<div class="text" style=" text-align:left;">
+    <td align="center"> <font color="red">   (****友情提示：网页最多显示5000条数据，超过的范围将不显示！****) </font></td>
+</div>
+<table id="roleTable" data-mobile-responsive="true" class="mb-bootstrap-table text-nowrap"></table>
+<div class="modal fade bs-example-modal-lg" id="detailListModal" style="overflow:scroll" tabindex="-1" role="dialog" aria-labelledby="detailListLabel" aria-hidden="true" >
+    <div class="modal-dialog modal-lg" style="width: 90%">
+        <div class="modal-content" style="height: 90%">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                <h4 class="modal-title" id="detailListLabel">原始报文明细</h4>
+            </div>
+            </br>
+            <div class="text" style=" text-align:left;">附件</div>
+            <div class="modal-body-detail">
+                <table id="attachTable" data-mobile-responsive="true" class="mb-bootstrap-table text-nowrap"></table>
+                </br>
+                <div class="text" style=" text-align:left;">原始报文内容</div>
+                <div id="detailTable"></div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+            </div>
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div>
+
+</body>
+
+<!--<head>-->
+<!--    <style>-->
+<!--        #round{-->
+<!--            width:400px;                              //通过给divwidth和heigh值，在通过margin属性来定位-->
+<!--        height:200px;-->
+<!--            margin:0 auto;-->
+<!--        }-->
+<!--        table{                                         //通过给divwidth和heigh值，在通过margin属性来定位-->
+<!--        width:300px;-->
+<!--            height:50px;-->
+<!--            margin:0 auto;-->
+<!--        }-->
+<!--    </style>-->
+<!--</head>-->
+<!--<body>-->
+<!--<div id="round">-->
+<!--    <p>我会居中</p>-->
+<!--</div>-->
+<!--<table>-->
+<!--    <tr>-->
+<!--        <td>我会居中</td>-->
+<!--    </tr>-->
+<!--</table>-->
+<!--</body>-->
+
+<script src="../js/jquery.min.js?v=2.1.4"></script>
+<script src="../js/bootstrap.min.js?v=3.3.6"></script>
+
+<!-- Bootstrap table -->
+<script src="../js/plugins/bootstrap-table/bootstrap-table.min.js"></script>
+<script
+        src="../js/plugins/bootstrap-table/bootstrap-table-mobile.min.js"></script>
+<script
+        src="../js/plugins/bootstrap-table/locale/bootstrap-table-zh-CN.min.js"></script>
+<!-- Sweet alert -->
+<script src="../js/plugins/sweetalert/sweetalert.min.js"></script>
+<script>
+    $('#indexName').val('origin_raw_app'),
+    $('#queryCondition').val('*:*'),
+
+    $('#roleTable').bootstrapTable({
+        method: 'get', // 服务器数据的请求方式 get or post
+        url:"/list", // 服务器数据的加载地址
+        striped: true, //是否显示行间隔色
+        cache: false, //是否使用缓存，默认为true，所以一般情况下需要设置一下这个属性（*）
+        pagination: true, //是否显示分页（*）
+        sortable: false, //是否启用排序
+        sidePagination: "server", //分页方式：client客户端分页，server服务端分页（*）
+        pageNumber: 1, //初始化加载第一页，默认第一页
+        pageSize: 5, //每页的记录行数（*）
+        pageList: [5, 25, 50, 100,250], //可供选择的每页的行数（*）
+        strictSearch: true,
+        minimumCountColumns: 2, //最少允许的列数
+        clickToSelect: true, //是否启用点击选中行
+        uniqueId: "ID", //每一行的唯一标识，一般为主键列
+        cardView: false,
+        detailView: false, //是否显示详细视图
+        smartDisplay: false,
+        queryParams: function(params) {
+            return {
+                pageSize: params.limit,
+                pageNum: params.offset / params.limit + 1,
+                indexName: $(".form").find("input[name='indexName']").val().trim(),
+                queryCondition: $(".form").find("input[name='queryCondition']").val().trim(),
+            };
+        },
+        columns: [
+           {
+            checkbox: true
+        }, {
+                //field: 'Number',//可不加
+                title: '序号',//标题  可不加
+                formatter: function (value, row,index) {
+                    // var pageSize = $('#roleTable').bootstrapTable('getOptions').pageSize;     //通过table的#id 得到每页多少条
+                    // var pageNumber = $('#roleTable').bootstrapTable('getOptions').pageNumber; //通过table的#id 得到当前第几页
+                    // return  pageSize * (pageNumber - 1) +index+1;
+                    return  index+1;
+                }
+        }, {
+            field: 'ES_MOD_TIME',
+            title: '修改时间'
+        },{
+            field: 'ES_ID',
+            title: '唯一字段(Data.UniqueKey)'
+        }, {
+            field: 'OriId',
+            title: '原始表ID'
+        }, {
+            field: 'MsgId',
+            title: '报文ID(MsgId)'
+        },{
+            field: 'DownloadTime',
+            title: '下载时间'
+        },{
+            field: 'UlrMd5',
+            title: 'URL(MD5)'
+        }, {
+            field: 'Others',
+            title: '索引值'
+        }, {
+            field: 'Specific_Information',
+            title: '具体信息',
+            formatter : function(value, row, index) {
+                return '<a class="btn btn-danger btn-sm" onclick="showDetail(\''+row.OriId+'\')"herf="#">详细信息</a>';
+            }
+        }]
+
+
+    });
+
+
+
+    $('#attachTable').bootstrapTable({
+        striped: true, //是否显示行间隔色
+        cache: false, //是否使用缓存，默认为true，所以一般情况下需要设置一下这个属性（*）
+        pagination: false, //是否显示分页（*）
+        sortable: false, //是否启用排序
+        sidePagination: "server", //分页方式：client客户端分页，server服务端分页（*）
+        pageNumber: 1, //初始化加载第一页，默认第一页
+        pageSize: 5, //每页的记录行数（*）
+        pageList: [5, 25, 50, 100], //可供选择的每页的行数（*）
+        strictSearch: true,
+        minimumCountColumns: 2, //最少允许的列数
+        clickToSelect: true, //是否启用点击选中行
+        uniqueId: "ID", //每一行的唯一标识，一般为主键列
+        cardView: false,
+        detailView: false, //是否显示详细视图
+        smartDisplay: false,
+        titleTooltip:"附件",
+        columns: [
+            {
+                //field: 'Number',//可不加
+                title: '序号',//标题  可不加
+                formatter: function (value, row, index) {
+                    return index+1;
+                }
+            },
+            {
+                field: 'RowKey',
+                title: 'rowKey'
+            },
+            {
+                field: 'TableName',
+                title: '表名'
+            },
+            {
+                field: 'UniqueKey',
+                title: '唯一字段'
+            },
+            {
+                field: 'FileName',
+                title: '文件名称'
+            },
+            {
+                field: 'load',
+                title: '下载内容',
+                formatter: function (value, row, index) {
+
+                    var url = encodeURI("/download?id="+row.RowKey+"&FileName="+row.FileName+"&TableName="+row.TableName);
+                    return '<a class="btn btn-info btn-sm" href='+url+'>下载</a>';
+                    // '<a class="btn btn-danger btn-sm" onclick="downloadFile(\''+row.rowKey+'\')"herf="#">下载</a>';
+                }
+            }
+        ]
+    });
+    // 搜索方法
+    function search() {
+        $('#roleTable').bootstrapTable('refresh');
+    }
+    // 重置方法
+    function refresh() {
+        $(".form")[0].reset();
+        search();
+    }
+    function formatJson(jsondata){
+        var jdata = JSON.stringify(jsondata, null, 4);
+        console.log(jdata);//这是在输出框的json数据确实被格式话了
+        $("#detailTable").html("<pre>"+jdata+"</pre>" );
+
+    }
+    function showDetail(id){
+        // $('#detailListModal').modal('show');
+        $.ajax({url: "/test",
+                data:{OriId:id,indexName:$('#indexName').val()},
+                context: document.body,
+                success: function(data, textStatus){
+                $('#detailListModal').modal('show');
+                  var   temp = JSON.stringify(data, undefined, 4);
+
+                  temp = syntaxHighlight(temp);
+                    $("#detailTable").html("<pre>"+temp+"</pre>" );
+
+                    var arrs =  JSON.parse(data.AttachArray);
+                    $('#attachTable').bootstrapTable('load',arrs);
+
+            }});
+
+    }
+    // function downloadFile(id){
+    //     // $('#detailListModal').modal('show');
+    //     $.ajax({url: "/download",
+    //         data:{rowKey:id,indexName:$('#indexName').val()},
+    //         context: document.body,
+    //         success: function(data, textStatus){
+    //             $('#detailListModal').modal('show');
+    //             var   temp = JSON.stringify(data, undefined, 4);
+    //
+    //             temp = syntaxHighlight(temp);
+    //             $("#detailTable").html("<pre>"+temp+"</pre>" );
+    //
+    //             var arrs =  JSON.parse(data.AttachArray);
+    //             $('#attachTable').bootstrapTable('load',arrs);
+    //         }
+    //     });
+    //
+    // }
+
+    //json highlight
+    function syntaxHighlight(json) {
+        json = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+            var cls = 'number';
+            if (/^"/.test(match)) {
+                if (/:$/.test(match)) {
+                    cls = 'key';
+                } else {
+                    cls = 'string';
+                }
+            } else if (/true|false/.test(match)) {
+                cls = 'boolean';
+            } else if (/null/.test(match)) {
+                cls = 'null';
+            }
+            return '<span class="' + cls + '">' + match + '</span>';
+        });
+    }
+
+    var pagesize = 10;
+    var pageno = 1;
+    var totalPage=0;
+
+    function heredoc(fn) {
+        return fn.toString().split('\n').slice(1,-1).join('\n') + '\n'
+    }
+
+
+
+</script>
+</html>
